@@ -36,4 +36,17 @@ public class GlobalExceptionHandler {
                 .build();
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(error);
     }
+
+    @ExceptionHandler(value = MissingMandatoryFieldException.class)
+    public ResponseEntity<ErrorResponse> handleMissingField(MissingMandatoryFieldException ex,
+                                                            HttpServletRequest request){
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .error("Missing required parameter")
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
 }
