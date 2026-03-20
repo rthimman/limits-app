@@ -1,5 +1,6 @@
 package com.stellantis.securitization.entity;
 
+import com.stellantis.securitization.AuditSource;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,8 +36,11 @@ public class LimitConfigHistory {
     @Column(name = "NEW_VALUE")
     private BigDecimal newValue;
 
+    //    @Column(name = "SOURCE", length = 20, nullable = false)
+//    private String source; // INLINE_EDIT
     @Column(name = "SOURCE", length = 20, nullable = false)
-    private String source; // INLINE_EDIT
+    @Enumerated(EnumType.STRING)
+    private AuditSource source;
 
     @Column(name = "ID_EVENT")
     private UUID eventId; // null for inline edit

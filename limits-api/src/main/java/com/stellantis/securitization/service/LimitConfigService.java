@@ -1,17 +1,17 @@
 package com.stellantis.securitization.service;
 
+import com.stellantis.securitization.AuditSource;
 import com.stellantis.securitization.dto.LimitListResponse;
 import com.stellantis.securitization.dto.LimitResponseDto;
 import com.stellantis.securitization.dto.LimitUpdateRequest;
 import com.stellantis.securitization.entity.LimitConfig;
 import com.stellantis.securitization.entity.LimitConfigHistory;
 import com.stellantis.securitization.exception.CriteriaNotFoundException;
-import com.stellantis.securitization.exception.InvalidOperatorException;
 import com.stellantis.securitization.repository.LimitConfigHistoryRepository;
 import com.stellantis.securitization.repository.LimitConfigRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,12 +21,12 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class LimitConfigService {
-    private final LimitConfigRepository limitConfigRepository;
+    private final LimitConfigRepository limitRepo;
     private final LimitConfigHistoryRepository historyRepo;
     private static final Set<String> ALLOWED_OPERATORS = Set.of("<=", ">=");
 
     public LimitListResponse getLimits(String countryCode, String fundCode) {
-        List<LimitResponseDto> list = limitConfigRepository.findActiveLimits(countryCode, fundCode).stream()
+        List<LimitResponseDto> list = limitRepo.findActiveLimits(countryCode, fundCode).stream()
                 .map(lc -> LimitResponseDto.builder()
                         .limitName(lc.getId().getCriteriaCode())
                         .labelEn(lc.getLabelEn())
@@ -44,9 +44,9 @@ public class LimitConfigService {
 
         int count = 0;
         for (LimitUpdateRequest.Item item : request.getUpdates()) {
-            LimitConfig config = limitConfigRepository.findByFundAndCriteria(countryCode, fundCode, item.getCriteriaCode());
+            LimitConfig config = limitRepo.findByFundAndCriteria(countryCode, fundCode, item.getCriteriaCode());
             if (config == null) {
-                throw new CriteriaNotFoundException("criteria not found with given code: " + item.getCriteriaCode());
+                throw new CriteriaNotFoundException(item.getCriteriaCode());
             }
 
             // 2. Validate Operator
@@ -61,7 +61,7 @@ public class LimitConfigService {
             config.setThresholdValue(item.getThresholdValue());
             config.setUpdatedBy("system");
             config.setUpdatedAt(LocalDateTime.now());
-            limitConfigRepository.save(config);
+            limitRepo.save(config);
 
             historyRepo.save(
                     LimitConfigHistory.builder()
@@ -69,7 +69,7 @@ public class LimitConfigService {
                             .criteriaCode(config.getId().getCriteriaCode())
                             .oldValue(oldValue)
                             .newValue(config.getThresholdValue())
-                            .source("INLINE_EDIT")
+                            .source(AuditSource.INLINE_EDIT)
                             .eventId(null)
                             .modifiedBy("system")
                             .modifiedAt(LocalDateTime.now())
@@ -78,5 +78,31 @@ public class LimitConfigService {
             count++;
         }
         return count;
+    }
+
+    @Transactional
+    public int deleteLimit(String countryCode, String fundCode, String criteriaCode) {
+        LimitConfig limitConfig = limitRepo.findByFundAndCriteria(countryCode, fundCode, criteriaCode);
+
+        if (limitConfig == null) {
+            throw new CriteriaNotFoundException(criteriaCode);
+        }
+        BigDecimal oldValue = limitConfig.getThresholdValue();
+        limitRepo.delete(limitConfig);
+
+        historyRepo.save(
+                LimitConfigHistory.builder()
+                        .fundId(limitConfig.getId().getFundId())
+                        .criteriaCode(criteriaCode)
+                        .oldValue(oldValue)
+                        .newValue(null)
+                        .source(AuditSource.INLINE_EDIT)
+                        .eventId(null)
+                        .modifiedBy("system")
+                        .modifiedAt(LocalDateTime.now())
+                        .build()
+        );
+        return 1;
+
     }
 }

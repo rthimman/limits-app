@@ -16,8 +16,8 @@ public class LimitController {
     private final LimitConfigService limitService;
 
     @GetMapping
-    public ResponseEntity<LimitListResponse> getLimits(String countryCode,
-                                                       String fundCode) {
+    public ResponseEntity<LimitListResponse> getLimits(@PathVariable String countryCode,
+                                                       @PathVariable String fundCode) {
         return ResponseEntity.ok(
                 limitService.getLimits(countryCode, fundCode)
         );
@@ -31,6 +31,17 @@ public class LimitController {
 
         int updatedCount = limitService.updateLimits(countryCode, fundCode, request);
         return ResponseEntity.ok(Map.of("updatedCount", updatedCount));
+    }
+
+    @DeleteMapping("/{criteriaCode}")
+    public ResponseEntity<Map<String, Integer>> deleteLimit(
+            @PathVariable String countryCode,
+            @PathVariable String fundCode,
+            @PathVariable String criteriaCode) {
+
+        int deletedCount = limitService.deleteLimit(countryCode, fundCode, criteriaCode);
+
+        return ResponseEntity.ok(Map.of("deletedCount", deletedCount));
     }
 
 }
