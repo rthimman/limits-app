@@ -37,4 +37,14 @@ public interface LimitConfigRepository extends JpaRepository<LimitConfig, LimitC
             @Param("criteriaCode") String criteriaCode
     );
 
+    @Query("""
+                SELECT lc FROM LimitConfig lc
+                JOIN lc.fund f
+                WHERE f.countryCode = :countryCode
+                  AND f.fundCode = :fundCode
+                  AND lc.isActive = TRUE
+                ORDER BY lc.displayOrder
+            """)
+    List<LimitConfig> findActiveLimitsForExport(@Param("countryCode") String countryCode,
+                                                @Param("fundCode") String fundCode);
 }

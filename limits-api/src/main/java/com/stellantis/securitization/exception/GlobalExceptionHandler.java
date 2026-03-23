@@ -49,4 +49,18 @@ public class GlobalExceptionHandler {
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
+
+    @ExceptionHandler(value = NoActiveLimitsFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoActiveLimits(NoActiveLimitsFoundException exception,
+                                                              HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.NOT_FOUND)
+                .error("No Active Limits")
+                .message(exception.getMessage())
+                .timestamp(LocalDateTime.now())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
 }

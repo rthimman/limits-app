@@ -4,9 +4,11 @@ import com.stellantis.securitization.dto.LimitListResponse;
 import com.stellantis.securitization.dto.LimitUpdateRequest;
 import com.stellantis.securitization.service.LimitConfigService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.Map;
 
 @RestController
@@ -42,6 +44,19 @@ public class LimitController {
         int deletedCount = limitService.deleteLimit(countryCode, fundCode, criteriaCode);
 
         return ResponseEntity.ok(Map.of("deletedCount", deletedCount));
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportLimits(@PathVariable String countryCode,@PathVariable String fundCode) throws IOException {
+        byte[] excelFile = limitService.exportLimits(countryCode, fundCode);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition",
+                        "attachment; filename=\"limits_export.xlsx\"")
+                .contentType(
+                        MediaType.parseMediaType(
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excelFile);
     }
 
 }

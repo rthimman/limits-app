@@ -1,4 +1,4 @@
-package com.stellantis.securitization;
+package com.stellantis.securitization.enums;
 
 public enum AuditSource {
     SIMULATION_POPIN,

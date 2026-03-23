@@ -1,7 +1,14 @@
 package com.stellantis.securitization.entity;
 
-import com.stellantis.securitization.AuditSource;
-import jakarta.persistence.*;
+import com.stellantis.securitization.enums.AuditSource;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -36,14 +43,12 @@ public class LimitConfigHistory {
     @Column(name = "NEW_VALUE")
     private BigDecimal newValue;
 
-    //    @Column(name = "SOURCE", length = 20, nullable = false)
-//    private String source; // INLINE_EDIT
     @Column(name = "SOURCE", length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     private AuditSource source;
 
     @Column(name = "ID_EVENT")
-    private UUID eventId; // null for inline edit
+    private UUID eventId;
 
     @Column(name = "MODIFIED_BY", length = 100, nullable = false)
     private String modifiedBy;

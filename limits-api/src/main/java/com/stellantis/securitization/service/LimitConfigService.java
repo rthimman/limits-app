@@ -1,21 +1,29 @@
 package com.stellantis.securitization.service;
 
-import com.stellantis.securitization.AuditSource;
+import com.stellantis.securitization.enums.AuditSource;
 import com.stellantis.securitization.dto.LimitListResponse;
 import com.stellantis.securitization.dto.LimitResponseDto;
 import com.stellantis.securitization.dto.LimitUpdateRequest;
 import com.stellantis.securitization.entity.LimitConfig;
 import com.stellantis.securitization.entity.LimitConfigHistory;
 import com.stellantis.securitization.exception.CriteriaNotFoundException;
+import com.stellantis.securitization.exception.NoActiveLimitsFoundException;
 import com.stellantis.securitization.repository.LimitConfigHistoryRepository;
 import com.stellantis.securitization.repository.LimitConfigRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -103,6 +111,53 @@ public class LimitConfigService {
                         .build()
         );
         return 1;
+
+    }
+
+    public byte[] exportLimits(String countryCode, String fundCode) throws IOException {
+        List<LimitConfig> limits = limitRepo.findActiveLimitsForExport(countryCode, fundCode);
+        if (limits.isEmpty()){
+            throw new NoActiveLimitsFoundException(countryCode, fundCode);
+        }
+
+        final List<String> headers = List.of(
+                "CRITERIA_CODE", "LABEL_EN", "LABEL_FR",
+                "OPERATOR", "THRESHOLD_VALUE", "VALUE_TYPE"
+        );
+        try (var workbook = new XSSFWorkbook();
+             var out = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("Limits");
+            createHeaderRow(sheet, headers);
+            int rowIndex = 1;
+            for (LimitConfig lc : limits) {
+                var row = sheet.createRow(rowIndex++);
+
+                int col = 0;
+                row.createCell(col++).setCellValue(lc.getId().getCriteriaCode());
+                row.createCell(col++).setCellValue(Objects.toString(lc.getLabelEn(), ""));
+                row.createCell(col++).setCellValue(Objects.toString(lc.getLabelFr(), ""));
+                row.createCell(col++).setCellValue(lc.getOperator());
+                row.createCell(col++).setCellValue(
+                        lc.getThresholdValue() != null ?
+                                lc.getThresholdValue().doubleValue() : 0
+                );
+                row.createCell(col).setCellValue(lc.getValueType());
+            }
+
+            for (int i = 0; i < headers.size(); i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    private void createHeaderRow(Sheet sheet, List<String> headers) {
+        var headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.size(); i++) {
+            headerRow.createCell(i).setCellValue(headers.get(i));
+        }
 
     }
 }
