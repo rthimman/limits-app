@@ -14,18 +14,10 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.stellantis.securitization.util.LimitApplicationConstants.REGEX_PATTERN;
+import static com.stellantis.securitization.util.LimitApplicationConstants.EXPECTED_HEADERS;
+
 public class ExcelParser {
-
-    private static final List<String> EXPECTED_HEADERS = List.of(
-            "CRITERIA_CODE",
-            "LABEL_EN",
-            "LABEL_FR",
-            "PROCESS",
-            "OPERATOR",
-            "THRESHOLD_VALUE",
-            "VALUE_TYPE"
-    );
-
     public static List<LimitImportRow> parse(MultipartFile file) {
         try (InputStream is = file.getInputStream();
              Workbook workbook = new XSSFWorkbook(is)) {
@@ -101,7 +93,7 @@ public class ExcelParser {
     private static BigDecimal parseNumericOrNull(String value) {
         if (value == null || value.isBlank()) return null;
 
-        if (!value.matches("^-?\\d+(\\.\\d+)?$")) {
+        if (!value.matches(REGEX_PATTERN)) {
             return null;
         }
 

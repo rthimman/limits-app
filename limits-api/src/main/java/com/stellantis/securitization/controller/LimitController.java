@@ -4,6 +4,7 @@ import com.stellantis.securitization.dto.LimitListResponse;
 import com.stellantis.securitization.dto.LimitUpdateRequest;
 import com.stellantis.securitization.dto.UploadLimitResponse;
 import com.stellantis.securitization.service.LimitConfigService;
+import com.stellantis.securitization.service.LimitHistoryExportService;
 import com.stellantis.securitization.service.LimitImportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -18,7 +19,7 @@ import java.util.Map;
 
 import static com.stellantis.securitization.util.LimitApplicationConstants.BASE_ENDPOINT;
 import static com.stellantis.securitization.util.LimitApplicationConstants.CONTENT_DISPOSITION;
-import static com.stellantis.securitization.util.LimitApplicationConstants.HEADER_VALUES;
+import static com.stellantis.securitization.util.LimitApplicationConstants.LIMIT_HEADER_VALUES;
 import static com.stellantis.securitization.util.LimitApplicationConstants.EXCEL_MEDIA_TYPE;
 import static com.stellantis.securitization.util.LimitApplicationConstants.ERROR;
 
@@ -28,6 +29,7 @@ import static com.stellantis.securitization.util.LimitApplicationConstants.ERROR
 public class LimitController {
     private final LimitConfigService limitService;
     private final LimitImportService importService;
+    private final LimitHistoryExportService historyExportService;
 
     @GetMapping("/{countryCode}/{fundCode}/limits")
     public ResponseEntity<LimitListResponse> getLimits(@PathVariable String countryCode,
@@ -63,7 +65,7 @@ public class LimitController {
         byte[] excelFile = limitService.exportLimits(countryCode, fundCode);
 
         return ResponseEntity.ok()
-                .header(CONTENT_DISPOSITION, HEADER_VALUES)
+                .header(CONTENT_DISPOSITION, LIMIT_HEADER_VALUES)
                 .contentType(MediaType.parseMediaType(EXCEL_MEDIA_TYPE))
                 .body(excelFile);
     }
@@ -95,6 +97,20 @@ public class LimitController {
 
             return ResponseEntity.internalServerError().body(error);
         }
+    }
+
+    @GetMapping("/{countryCode}/{fundCode}/limits/history/export")
+    public ResponseEntity<byte[]> exportLimitConfigHistory(
+            @PathVariable String countryCode,
+            @PathVariable String fundCode) throws IOException {
+
+        byte[] excel = historyExportService.exportLimitConfigHistory(countryCode, fundCode);
+
+        return ResponseEntity.ok()
+                .header(CONTENT_DISPOSITION,
+                        "attachment; filename=\"limit-history-" + fundCode + ".xlsx\"")
+                .contentType(MediaType.parseMediaType(EXCEL_MEDIA_TYPE)
+                ).body(excel);
     }
 
 }

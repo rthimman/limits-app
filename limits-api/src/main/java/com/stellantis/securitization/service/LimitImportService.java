@@ -28,11 +28,12 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static com.stellantis.securitization.util.LimitApplicationConstants.ERROR;
 import static com.stellantis.securitization.util.LimitApplicationConstants.SUCCESS;
+import static com.stellantis.securitization.util.LimitApplicationConstants.NEW_LINE;
+import static com.stellantis.securitization.util.LimitApplicationConstants.ALLOWED_OPERATORS;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Service
@@ -42,7 +43,6 @@ public class LimitImportService {
     private final LimitConfigRepository limitRepo;
     private final LimitConfigHistoryRepository historyRepo;
     private final ConfigImportStatusRepository importStatusRepo;
-    private static final Set<String> ALLOWED_OPERATORS = Set.of("<=", ">=");
 
     @Transactional
     public UploadLimitResponse importLimits(String countryCode,
@@ -59,7 +59,7 @@ public class LimitImportService {
                     fund.getId(),
                     ImportStatus.ERROR,
                     0,
-                    String.join("\n", validationErrors),
+                    String.join(NEW_LINE, validationErrors),
                     userSsoId
             );
 

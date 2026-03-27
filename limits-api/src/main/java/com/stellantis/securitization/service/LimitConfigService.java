@@ -11,7 +11,9 @@ import com.stellantis.securitization.exception.CriteriaNotFoundException;
 import com.stellantis.securitization.exception.NoActiveLimitsFoundException;
 import com.stellantis.securitization.repository.LimitConfigHistoryRepository;
 import com.stellantis.securitization.repository.LimitConfigRepository;
+import com.stellantis.securitization.util.ExcelExportUtil;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -126,45 +128,25 @@ public class LimitConfigService {
                 "VALUE_TYPE"
         );
 
-        try (var workbook = new XSSFWorkbook();
-             var out = new ByteArrayOutputStream()) {
+        XSSFWorkbook workbook = ExcelExportUtil.createWorkbook();
+        Sheet sheet = ExcelExportUtil.createSheetWithHeader(workbook, "Limits", headers);
 
-            Sheet sheet = workbook.createSheet("Limits");
-            createHeaderRow(sheet, headers);
+        int rowIndex = 1;
+        for (LimitConfig lc : limits) {
+            Row row = sheet.createRow(rowIndex++);
+            int col = 0;
 
-            int rowIndex = 1;
-
-            for (LimitConfig lc : limits) {
-
-                var row = sheet.createRow(rowIndex++);
-                int col = 0;
-
-                row.createCell(col++).setCellValue(lc.getId().getCriteriaCode());
-                row.createCell(col++).setCellValue(Objects.toString(lc.getLabelEn(), ""));
-                row.createCell(col++).setCellValue(Objects.toString(lc.getLabelFr(), ""));
-                row.createCell(col++).setCellValue(lc.getProcess().toString());
-                row.createCell(col++).setCellValue(lc.getOperator().toString());
-                row.createCell(col++).setCellValue(
-                        lc.getThresholdValue() != null ?
-                                lc.getThresholdValue().doubleValue() : 0
-                );
-                row.createCell(col).setCellValue(lc.getValueType().name());
-            }
-
-            for (int i = 0; i < headers.size(); i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            return out.toByteArray();
-        }
-    }
-
-    private void createHeaderRow(Sheet sheet, List<String> headers) {
-        var headerRow = sheet.createRow(0);
-        for (int i = 0; i < headers.size(); i++) {
-            headerRow.createCell(i).setCellValue(headers.get(i));
+            row.createCell(col++).setCellValue(lc.getId().getCriteriaCode());
+            row.createCell(col++).setCellValue(lc.getLabelEn());
+            row.createCell(col++).setCellValue(lc.getLabelFr());
+            row.createCell(col++).setCellValue(lc.getProcess().name());
+            row.createCell(col++).setCellValue(lc.getOperator().getSymbol());
+            row.createCell(col++).setCellValue(
+                    lc.getThresholdValue() != null ? lc.getThresholdValue().doubleValue() : 0
+            );
+            row.createCell(col).setCellValue(lc.getValueType().name());
         }
 
+        return ExcelExportUtil.writeToByteArray(workbook, headers.size());
     }
 }
