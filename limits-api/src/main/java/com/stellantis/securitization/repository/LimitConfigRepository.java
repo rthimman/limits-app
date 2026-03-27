@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface LimitConfigRepository extends JpaRepository<LimitConfig, LimitConfigId> {
 
@@ -47,4 +48,6 @@ public interface LimitConfigRepository extends JpaRepository<LimitConfig, LimitC
             """)
     List<LimitConfig> findActiveLimitsForExport(@Param("countryCode") String countryCode,
                                                 @Param("fundCode") String fundCode);
+
+    void deleteByFundId(UUID id);
 }

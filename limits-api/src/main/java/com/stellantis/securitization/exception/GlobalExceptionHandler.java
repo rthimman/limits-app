@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleCriteriaNotFound(CriteriaNotFoundException ex, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
                 .error("Given Criteria code not present in DB")
-                .status(HttpStatus.NOT_FOUND)
+                .status(HttpStatus.NOT_FOUND.value())
                 .message(ex.getMessage())
                 .timestamp(LocalDateTime.now())
                 .path(request.getRequestURI())
@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .status(HttpStatus.UNPROCESSABLE_CONTENT.value())
                 .error("Invalid Operator")
                 .message(exception.getMessage())
                 .path(request.getRequestURI())
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMissingField(MissingMandatoryFieldException ex,
                                                             HttpServletRequest request){
         ErrorResponse error = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST)
+                .status(HttpStatus.BAD_REQUEST.value())
                 .error("Missing required parameter")
                 .message(ex.getMessage())
                 .timestamp(LocalDateTime.now())
@@ -54,9 +54,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNoActiveLimits(NoActiveLimitsFoundException exception,
                                                               HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.builder()
-                .status(HttpStatus.NOT_FOUND)
+                .status(HttpStatus.NOT_FOUND.value())
                 .error("No Active Limits")
                 .message(exception.getMessage())
+                .timestamp(LocalDateTime.now())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(value = FundNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFundNotFound(FundNotFoundException ex,
+                                                            HttpServletRequest request) {
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("Fund Not Found")
+                .message(ex.getMessage())
                 .timestamp(LocalDateTime.now())
                 .path(request.getRequestURI())
                 .build();

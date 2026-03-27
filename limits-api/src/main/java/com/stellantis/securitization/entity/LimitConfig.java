@@ -1,6 +1,19 @@
 package com.stellantis.securitization.entity;
 
-import jakarta.persistence.*;
+import com.stellantis.securitization.enums.LimitOperator;
+import com.stellantis.securitization.enums.LimitProcess;
+import com.stellantis.securitization.enums.ValueType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Convert;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,17 +39,20 @@ public class LimitConfig {
     @Column(name = "LABEL_FR", length = 100)
     private String labelFr;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "PROCESS", length = 20, nullable = false)
-    private String process; // SELECTION | MONITORING | BUYBACK
+    private LimitProcess process;
 
+    @Convert(converter = OperatorConverter.class)
     @Column(name = "OPERATOR", length = 5, nullable = false)
-    private String operator; // <= or >=
+    private LimitOperator operator;
 
     @Column(name = "THRESHOLD_VALUE", precision = 15, scale = 4)
     private BigDecimal thresholdValue;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "VALUE_TYPE", length = 20, nullable = false)
-    private String valueType; // PERCENTAGE | MONTHS | EUR | RATE | COUNT
+    private ValueType valueType;
 
     @Column(name = "DISPLAY_ORDER")
     private Integer displayOrder;

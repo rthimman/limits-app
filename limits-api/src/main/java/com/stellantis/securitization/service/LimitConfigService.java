@@ -1,46 +1,43 @@
 package com.stellantis.securitization.service;
 
-import com.stellantis.securitization.enums.AuditSource;
 import com.stellantis.securitization.dto.LimitListResponse;
 import com.stellantis.securitization.dto.LimitResponseDto;
 import com.stellantis.securitization.dto.LimitUpdateRequest;
 import com.stellantis.securitization.entity.LimitConfig;
 import com.stellantis.securitization.entity.LimitConfigHistory;
+import com.stellantis.securitization.enums.AuditSource;
+import com.stellantis.securitization.enums.LimitOperator;
 import com.stellantis.securitization.exception.CriteriaNotFoundException;
 import com.stellantis.securitization.exception.NoActiveLimitsFoundException;
 import com.stellantis.securitization.repository.LimitConfigHistoryRepository;
 import com.stellantis.securitization.repository.LimitConfigRepository;
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class LimitConfigService {
     private final LimitConfigRepository limitRepo;
     private final LimitConfigHistoryRepository historyRepo;
-    private static final Set<String> ALLOWED_OPERATORS = Set.of("<=", ">=");
 
     public LimitListResponse getLimits(String countryCode, String fundCode) {
+
         List<LimitResponseDto> list = limitRepo.findActiveLimits(countryCode, fundCode).stream()
                 .map(lc -> LimitResponseDto.builder()
                         .limitName(lc.getId().getCriteriaCode())
                         .labelEn(lc.getLabelEn())
-                        .operator(lc.getOperator())
+                        .operator(lc.getOperator().toString())
                         .thresholdValue(lc.getThresholdValue())
-                        .valueType(lc.getValueType())
+                        .valueType(lc.getValueType().name())
                         .displayOrder(lc.getDisplayOrder())
                         .build())
                 .toList();
@@ -52,28 +49,27 @@ public class LimitConfigService {
 
         int count = 0;
         for (LimitUpdateRequest.Item item : request.getUpdates()) {
-            LimitConfig config = limitRepo.findByFundAndCriteria(countryCode, fundCode, item.getCriteriaCode());
+            LimitConfig config =
+                    limitRepo.findByFundAndCriteria(countryCode, fundCode, item.getCriteriaCode());
+
             if (config == null) {
                 throw new CriteriaNotFoundException(item.getCriteriaCode());
             }
 
-            // 2. Validate Operator
-//            if (item.getOperator() != null &&
-//                    !ALLOWED_OPERATORS.contains(item.getOperator())) {
-//                throw new InvalidOperatorException(item.getOperator());
-//            }
-
             BigDecimal oldValue = config.getThresholdValue();
 
-            config.setOperator(item.getOperator());
+            if (item.getOperator() != null)
+                config.setOperator(LimitOperator.fromSymbol(item.getOperator()));
+
             config.setThresholdValue(item.getThresholdValue());
             config.setUpdatedBy("system");
             config.setUpdatedAt(LocalDateTime.now());
+
             limitRepo.save(config);
 
             historyRepo.save(
                     LimitConfigHistory.builder()
-                            .fundId(config.getId().getFundId())
+                            .fundId(config.getFund().getId())
                             .criteriaCode(config.getId().getCriteriaCode())
                             .oldValue(oldValue)
                             .newValue(config.getThresholdValue())
@@ -100,7 +96,7 @@ public class LimitConfigService {
 
         historyRepo.save(
                 LimitConfigHistory.builder()
-                        .fundId(limitConfig.getId().getFundId())
+                        .fundId(limitConfig.getFund().getId())
                         .criteriaCode(criteriaCode)
                         .oldValue(oldValue)
                         .newValue(null)
@@ -116,32 +112,43 @@ public class LimitConfigService {
 
     public byte[] exportLimits(String countryCode, String fundCode) throws IOException {
         List<LimitConfig> limits = limitRepo.findActiveLimitsForExport(countryCode, fundCode);
-        if (limits.isEmpty()){
+        if (limits.isEmpty()) {
             throw new NoActiveLimitsFoundException(countryCode, fundCode);
         }
 
-        final List<String> headers = List.of(
-                "CRITERIA_CODE", "LABEL_EN", "LABEL_FR",
-                "OPERATOR", "THRESHOLD_VALUE", "VALUE_TYPE"
+        List<String> headers = List.of(
+                "CRITERIA_CODE",
+                "LABEL_EN",
+                "LABEL_FR",
+                "PROCESS",
+                "OPERATOR",
+                "THRESHOLD_VALUE",
+                "VALUE_TYPE"
         );
+
         try (var workbook = new XSSFWorkbook();
              var out = new ByteArrayOutputStream()) {
-            var sheet = workbook.createSheet("Limits");
-            createHeaderRow(sheet, headers);
-            int rowIndex = 1;
-            for (LimitConfig lc : limits) {
-                var row = sheet.createRow(rowIndex++);
 
+            Sheet sheet = workbook.createSheet("Limits");
+            createHeaderRow(sheet, headers);
+
+            int rowIndex = 1;
+
+            for (LimitConfig lc : limits) {
+
+                var row = sheet.createRow(rowIndex++);
                 int col = 0;
+
                 row.createCell(col++).setCellValue(lc.getId().getCriteriaCode());
                 row.createCell(col++).setCellValue(Objects.toString(lc.getLabelEn(), ""));
                 row.createCell(col++).setCellValue(Objects.toString(lc.getLabelFr(), ""));
-                row.createCell(col++).setCellValue(lc.getOperator());
+                row.createCell(col++).setCellValue(lc.getProcess().toString());
+                row.createCell(col++).setCellValue(lc.getOperator().toString());
                 row.createCell(col++).setCellValue(
                         lc.getThresholdValue() != null ?
                                 lc.getThresholdValue().doubleValue() : 0
                 );
-                row.createCell(col).setCellValue(lc.getValueType());
+                row.createCell(col).setCellValue(lc.getValueType().name());
             }
 
             for (int i = 0; i < headers.size(); i++) {
