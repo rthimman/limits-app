@@ -1,5 +1,6 @@
 package com.stellantis.securitization.controller;
 
+import com.stellantis.securitization.dto.LimitHistoryResponse;
 import com.stellantis.securitization.dto.LimitListResponse;
 import com.stellantis.securitization.dto.LimitUpdateRequest;
 import com.stellantis.securitization.dto.UploadLimitResponse;
@@ -100,17 +101,12 @@ public class LimitController {
     }
 
     @GetMapping("/{countryCode}/{fundCode}/limits/history/export")
-    public ResponseEntity<byte[]> exportLimitConfigHistory(
+    public ResponseEntity<List<LimitHistoryResponse>> getLimitConfigHistory(
             @PathVariable String countryCode,
-            @PathVariable String fundCode) throws IOException {
-
-        byte[] excel = historyExportService.exportLimitConfigHistory(countryCode, fundCode);
-
-        return ResponseEntity.ok()
-                .header(CONTENT_DISPOSITION,
-                        "attachment; filename=\"limit-history-" + fundCode + ".xlsx\"")
-                .contentType(MediaType.parseMediaType(EXCEL_MEDIA_TYPE)
-                ).body(excel);
+            @PathVariable String fundCode) {
+        List<LimitHistoryResponse> history =
+                historyExportService.getLimitHistory(countryCode, fundCode);
+        return ResponseEntity.ok(history);
     }
 
 }
